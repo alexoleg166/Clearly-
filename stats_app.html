@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Clearly Crypto — Статистика</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg:        #0d0d10;
+      --bg2:       #13131a;
+      --bg3:       #1a1a24;
+      --bg4:       #20202e;
+      --border:    #252535;
+      --accent:    #7c6bff;
+      --accent2:   #a78bfa;
+      --accent-dim:#7c6bff22;
+      --green:     #34d399;
+      --green-dim: #34d39918;
+      --amber:     #fbbf24;
+      --amber-dim: #fbbf2418;
+      --red:       #f87171;
+      --red-dim:   #f8717118;
+      --text:      #f0f0f5;
+      --text2:     #9090a8;
+      --text3:     #55556a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Access Denied ── */
+    #vDenied {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 40px 28px;
+      background: var(--bg);
+    }
+    #vDenied.show { display: flex; }
+
+    .denied-icon {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: var(--red-dim);
+      border: 2px solid var(--red);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; margin-bottom: 24px;
+      animation: popIn .6s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .denied-title {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px;
+      animation: fadeUp .5s .2s both;
+    }
+    .denied-sub {
+      font-size: 13px; color: var(--text3); line-height: 1.6;
+      animation: fadeUp .5s .35s both;
+    }
+    .denied-sub b { color: var(--red); }
+
+    /* ── Loading ── */
+    #vLoading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; z-index: 999;
+      transition: opacity .4s;
+    }
+    #vLoading.out { opacity: 0; pointer-events: none; }
+
+    .spin {
+      width: 42px; height: 42px;
+      border: 3px solid var(--bg3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    .load-label { font-size: 12px; color: var(--text3); margin-top: 14px; letter-spacing: .5px; }
+
+    /* ── Main App ── */
+    #vApp { display: none; padding-bottom: 32px; }
+    #vApp.show { display: block; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(180deg, #16162099 0%, transparent 100%);
+      padding: 20px 18px 16px;
+      position: sticky; top: 0;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: .5px solid var(--border);
+      z-index: 10;
+    }
+    .header-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .brand-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .brand-name {
+      font-size: 16px; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+    .refresh-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg3); border: .5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; color: var(--text2);
+      transition: background .15s, transform .2s;
+    }
+    .refresh-btn:hover { background: var(--bg4); }
+    .refresh-btn.spinning { animation: spin .6s linear infinite; }
+
+    /* Summary Cards */
+    .section { padding: 16px 14px 0; }
+    .section-label {
+      font-size: 10px; color: var(--text3); letter-spacing: .8px;
+      text-transform: uppercase; margin-bottom: 10px; padding: 0 2px;
+    }
+
+    .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .card-wide { grid-column: 1 / -1; }
+
+    .stat-card {
+      background: var(--bg2);
+      border: .5px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      position: relative; overflow: hidden;
+      animation: fadeUp .4s both;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .card-icon {
+      font-size: 22px; margin-bottom: 8px; display: block;
+    }
+    .card-value {
+      font-size: 28px; font-weight: 700; color: var(--text);
+      line-height: 1; letter-spacing: -1px;
+    }
+    .card-label {
+      font-size: 11px; color: var(--text3); margin-top: 5px;
+    }
+    .card-badge {
+      position: absolute; top: 12px; right: 12px;
+      font-size: 10px; font-weight: 600; padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber); }
+    .badge-purple { background: var(--accent-dim); color: var(--accent2); }
+
+    /* Tariff Bars */
+    .tariff-list { display: flex; flex-direction: column; gap: 8px; }
+    .tariff-row {
+      background: var(--bg2);
+      border: .5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      animation: fadeUp .4s both;
+    }
+    .tariff-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .tariff-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .tariff-meta { font-size: 11px; color: var(--text3); }
+    .tariff-revenue { font-size: 13px; font-weight: 600; color: var(--green); }
+
+    .progress-track {
+      height: 5px; background: var(--bg3);
+      border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .8s cubic-bezier(.4,0,.2,1);
+      width: 0;
+    }
+
+    /* Recent Purchases */
+    .purchase-list { display: flex; flex-direction: column; gap: 8px; }
+    .purchase-row {
+      background: var(--bg2);
+      border: .5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+      animation: fadeUp .4s both;
+    }
+    .pu-avatar {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .pu-info { flex: 1; min-width: 0; }
+    .pu-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pu-sub {
+      font-size: 11px; color: var(--text3); margin-top: 2px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .pu-tariff {
+      background: var(--accent-dim); color: var(--accent2);
+      padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 600;
+    }
+    .pu-price {
+      font-size: 14px; font-weight: 700; color: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* Daily mini-chart */
+    .mini-chart {
+      background: var(--bg2);
+      border: .5px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 5px;
+      height: 60px; margin-top: 12px;
+    }
+    .bar-col {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .bar-fill {
+      width: 100%; border-radius: 4px 4px 0 0;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      min-height: 3px;
+      transition: height .6s cubic-bezier(.4,0,.2,1);
+      opacity: .85;
+    }
+    .bar-label { font-size: 9px; color: var(--text3); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px;
+    }
+    .empty-state span { display: block; font-size: 28px; margin-bottom: 8px; }
+
+    /* Animations */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(.3); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+
+    .stagger-1 { animation-delay: .05s; }
+    .stagger-2 { animation-delay: .10s; }
+    .stagger-3 { animation-delay: .15s; }
+    .stagger-4 { animation-delay: .20s; }
+
+    /* Pulse dot */
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); display: inline-block;
+      box-shadow: 0 0 0 0 var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%  { box-shadow: 0 0 0 0 #34d39955; }
+      70% { box-shadow: 0 0 0 6px #34d39900; }
+      100%{ box-shadow: 0 0 0 0 #34d39900; }
+    }
+
+    .header-live {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="vLoading">
+  <div class="spin"></div>
+  <div class="load-label">Загрузка данных…</div>
+</div>
+
+<!-- Access Denied -->
+<div id="vDenied">
+  <div class="denied-icon">🔒</div>
+  <div class="denied-title">Нет доступа</div>
+  <div class="denied-sub">
+    У вас нету доступа к статистике <b>Clearly</b>.<br>
+    Обратитесь к администратору.
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="vApp">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-brand">
+        <div class="brand-icon">📊</div>
+        <div>
+          <div class="brand-name">Clearly Crypto</div>
+          <div class="brand-sub">Панель статистики</div>
+        </div>
+      </div>
+      <button class="refresh-btn" id="btnRefresh" onclick="loadStats()" title="Обновить">↻</button>
+    </div>
+    <div class="header-live">
+      <span class="live-dot"></span>
+      Данные обновляются в реальном времени
+    </div>
+  </div>
+
+  <!-- Overview Cards -->
+  <div class="section">
+    <div class="section-label">Обзор</div>
+    <div class="cards-grid">
+      <div class="stat-card stagger-1">
+        <span class="card-icon">👥</span>
+        <div class="card-value" id="cTotalUsers">—</div>
+        <div class="card-label">Всего пользователей</div>
+        <div class="card-badge badge-purple" id="cNewWeek"></div>
+      </div>
+      <div class="stat-card stagger-2">
+        <span class="card-icon">💰</span>
+        <div class="card-value" id="cRevenue">—</div>
+        <div class="card-label">Общая выручка (USD)</div>
+      </div>
+      <div class="stat-card stagger-3">
+        <span class="card-icon">🛒</span>
+        <div class="card-value" id="cPurchases">—</div>
+        <div class="card-label">Всего покупок</div>
+      </div>
+      <div class="stat-card stagger-4">
+        <span class="card-icon">📅</span>
+        <div class="card-value" id="cToday">—</div>
+        <div class="card-label">Новых сегодня</div>
+        <div class="card-badge badge-green" id="cWeekUsers"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Chart -->
+  <div class="section" style="margin-top:4px">
+    <div class="section-label">Покупки за 7 дней</div>
+    <div class="mini-chart">
+      <div class="chart-bars" id="chartBars">
+        <div class="empty-state"><span>📭</span>Нет данных за неделю</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tariffs -->
+  <div class="section" style="margin-top:4px">
+    <div class="section-label">По тарифам</div>
+    <div class="tariff-list" id="tariffList">
+      <div class="empty-state"><span>📭</span>Покупок пока нет</div>
+    </div>
+  </div>
+
+  <!-- Recent Purchases -->
+  <div class="section" style="margin-top:4px">
+    <div class="section-label">Последние покупки</div>
+    <div class="purchase-list" id="purchaseList">
+      <div class="empty-state"><span>📭</span>Покупок пока нет</div>
+    </div>
+  </div>
+
+</div><!-- /vApp -->
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  // ── Access check ──────────────────────────────────────────────
+  const ALLOWED = new Set(["slavik222567", "rvelikiy"]);
+
+  function getUsernameFromTg() {
+    try {
+      const user = tg?.initDataUnsafe?.user;
+      return (user?.username || "").toLowerCase();
+    } catch { return ""; }
+  }
+
+  function checkAccess() {
+    const username = getUsernameFromTg();
+    if (!username || !ALLOWED.has(username)) {
+      document.getElementById("vLoading").classList.add("out");
+      setTimeout(() => document.getElementById("vDenied").classList.add("show"), 420);
+      return false;
+    }
+    return true;
+  }
+
+  // ── API URL ───────────────────────────────────────────────────
+  // Замени на реальный URL твоего сервера (тот же хост, что WEBAPP_URL)
+  const API_BASE = window.location.origin;
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function fmt(n) {
+    if (n === null || n === undefined || n === "—") return "—";
+    return Number(n).toLocaleString("ru-RU");
+  }
+  function fmtMoney(n) {
+    if (!n && n !== 0) return "—";
+    return "$" + Number(n).toFixed(2);
+  }
+  function timeAgo(isoStr) {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    const diff = Math.floor((Date.now() - d) / 1000);
+    if (diff < 60)  return "только что";
+    if (diff < 3600) return Math.floor(diff/60) + " мин. назад";
+    if (diff < 86400) return Math.floor(diff/3600) + " ч. назад";
+    return Math.floor(diff/86400) + " д. назад";
+  }
+  function initials(name) {
+    if (!name) return "?";
+    return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  }
+  function shortDay(iso) {
+    if (!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("ru-RU", { month: "short", day: "numeric" });
+  }
+
+  // ── Render ────────────────────────────────────────────────────
+  function renderStats(data) {
+    // Overview
+    animCount("cTotalUsers", data.total_users ?? 0);
+    animCount("cPurchases",  data.total_purchases ?? 0);
+    document.getElementById("cRevenue").textContent = fmtMoney(data.total_revenue);
+    animCount("cToday", data.new_users_today ?? 0);
+
+    const nw = data.new_users_week ?? 0;
+    document.getElementById("cNewWeek").textContent = nw > 0 ? `+${nw} за неделю` : "";
+    document.getElementById("cWeekUsers").textContent = nw > 0 ? `+${nw} за 7 дней` : "";
+
+    // Chart
+    renderChart(data.daily_stats || []);
+
+    // Tariffs
+    renderTariffs(data.tariffs || []);
+
+    // Recent purchases
+    renderPurchases(data.recent_purchases || []);
+  }
+
+  function animCount(id, target) {
+    const el = document.getElementById(id);
+    const start = 0;
+    const dur = 600;
+    const startTime = performance.now();
+    function step(now) {
+      const p = Math.min((now - startTime) / dur, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(ease * target));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderChart(daily) {
+    const el = document.getElementById("chartBars");
+    if (!daily.length) {
+      el.innerHTML = '<div class="empty-state"><span>📭</span>Нет данных за неделю</div>';
+      return;
+    }
+    const max = Math.max(...daily.map(d => d.count), 1);
+    el.innerHTML = daily.map(d => {
+      const pct = Math.round((d.count / max) * 100);
+      return `
+        <div class="bar-col">
+          <div class="bar-fill" style="height:${pct}%"></div>
+          <div class="bar-label">${shortDay(d.day)}</div>
+        </div>`;
+    }).join("");
+    // animate heights in
+    requestAnimationFrame(() => {
+      el.querySelectorAll(".bar-fill").forEach((b, i) => {
+        b.style.transition = `height .6s ${i*0.07}s cubic-bezier(.4,0,.2,1)`;
+      });
+    });
+  }
+
+  function renderTariffs(tariffs) {
+    const el = document.getElementById("tariffList");
+    if (!tariffs.length) {
+      el.innerHTML = '<div class="empty-state"><span>📭</span>Покупок пока нет</div>';
+      return;
+    }
+    const maxCount = Math.max(...tariffs.map(t => t.count), 1);
+    el.innerHTML = tariffs.map((t, i) => {
+      const pct = Math.round((t.count / maxCount) * 100);
+      return `
+        <div class="tariff-row stagger-${Math.min(i+1,4)}">
+          <div class="tariff-head">
+            <div>
+              <div class="tariff-name">${escHtml(t.name)}</div>
+              <div class="tariff-meta">${fmt(t.count)} покупок</div>
+            </div>
+            <div class="tariff-revenue">${fmtMoney(t.revenue)}</div>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" data-pct="${pct}"></div>
+          </div>
+        </div>`;
+    }).join("");
+    // animate progress bars
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.querySelectorAll(".progress-fill").forEach(b => {
+        b.style.width = b.dataset.pct + "%";
+      });
+    }));
+  }
+
+  function renderPurchases(purchases) {
+    const el = document.getElementById("purchaseList");
+    if (!purchases.length) {
+      el.innerHTML = '<div class="empty-state"><span>📭</span>Покупок пока нет</div>';
+      return;
+    }
+    el.innerHTML = purchases.map((p, i) => {
+      const name   = p.username ? "@" + p.username : (p.first_name || "Пользователь");
+      const letter = initials(p.first_name || p.username || "?");
+      const ago    = timeAgo(p.date);
+      return `
+        <div class="purchase-row stagger-${Math.min(i+1,4)}">
+          <div class="pu-avatar">${letter}</div>
+          <div class="pu-info">
+            <div class="pu-name">${escHtml(name)}</div>
+            <div class="pu-sub">
+              <span class="pu-tariff">${escHtml(p.tariff)}</span>
+              <span>${ago}</span>
+            </div>
+          </div>
+          <div class="pu-price">${fmtMoney(p.price)}</div>
+        </div>`;
+    }).join("");
+  }
+
+  function escHtml(s) {
+    if (!s) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // ── Load ──────────────────────────────────────────────────────
+  async function loadStats() {
+    const btn = document.getElementById("btnRefresh");
+    btn.classList.add("spinning");
+    try {
+      const res  = await fetch(`${API_BASE}/api/stats`);
+      const json = await res.json();
+      if (json.ok) {
+        renderStats(json.data);
+      } else {
+        console.error("Stats error:", json.error);
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
+    } finally {
+      btn.classList.remove("spinning");
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────
+  async function init() {
+    // Small delay for Telegram WebApp to initialize
+    await new Promise(r => setTimeout(r, 300));
+
+    if (!checkAccess()) return;
+
+    // Show app, hide loader
+    document.getElementById("vApp").classList.add("show");
+    document.getElementById("vLoading").classList.add("out");
+
+    await loadStats();
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadStats, 30_000);
+  }
+
+  init();
+</script>
+</body>
+</html>
