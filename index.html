@@ -1,625 +1,565 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Clearly Crypto — Статистика</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root {
-      --bg:        #0d0d10;
-      --bg2:       #13131a;
-      --bg3:       #1a1a24;
-      --bg4:       #20202e;
-      --border:    #252535;
-      --accent:    #7c6bff;
-      --accent2:   #a78bfa;
-      --accent-dim:#7c6bff22;
-      --green:     #34d399;
-      --green-dim: #34d39918;
-      --amber:     #fbbf24;
-      --amber-dim: #fbbf2418;
-      --red:       #f87171;
-      --red-dim:   #f8717118;
-      --text:      #f0f0f5;
-      --text2:     #9090a8;
-      --text3:     #55556a;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Clearly Crypto — Stats</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap');
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+  :root {
+    --bg: #0a0a0d;
+    --surface: #111116;
+    --card: #16161c;
+    --border: #1e1e28;
+    --border2: #2a2a38;
+    --accent: #7c5cfc;
+    --accent2: #4ade80;
+    --accent3: #fb923c;
+    --text: #e8e8f2;
+    --muted: #555568;
+    --muted2: #333344;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
 
-    /* ── Access Denied ── */
-    #vDenied {
-      display: none;
-      min-height: 100vh;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      text-align: center;
-      padding: 40px 28px;
-      background: var(--bg);
-    }
-    #vDenied.show { display: flex; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .denied-icon {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: var(--red-dim);
-      border: 2px solid var(--red);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 36px; margin-bottom: 24px;
-      animation: popIn .6s cubic-bezier(.34,1.56,.64,1) both;
-    }
-    .denied-title {
-      font-size: 20px; font-weight: 700; color: var(--text);
-      margin-bottom: 10px;
-      animation: fadeUp .5s .2s both;
-    }
-    .denied-sub {
-      font-size: 13px; color: var(--text3); line-height: 1.6;
-      animation: fadeUp .5s .35s both;
-    }
-    .denied-sub b { color: var(--red); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-    /* ── Loading ── */
-    #vLoading {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column; z-index: 999;
-      transition: opacity .4s;
-    }
-    #vLoading.out { opacity: 0; pointer-events: none; }
+  /* ── Loading ── */
+  #loading {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999; transition: opacity .4s;
+  }
+  #loading.out { opacity: 0; pointer-events: none; }
+  .load-logo {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: linear-gradient(135deg, #7c5cfc22, #7c5cfc44);
+    border: 1px solid #7c5cfc66;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; margin-bottom: 20px;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.8} 50%{transform:scale(1.06);opacity:1} }
+  .load-bar-wrap { width: 140px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+  .load-bar { height: 100%; width: 0; background: var(--accent); border-radius: 1px; animation: loadbar 1.6s ease forwards; }
+  @keyframes loadbar { to { width: 100%; } }
+  .load-text { margin-top: 12px; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
-    .spin {
-      width: 42px; height: 42px;
-      border: 3px solid var(--bg3);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    .load-label { font-size: 12px; color: var(--text3); margin-top: 14px; letter-spacing: .5px; }
+  /* ── Error ── */
+  #error-view {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 24px; text-align: center;
+  }
+  .err-icon { font-size: 40px; margin-bottom: 16px; }
+  .err-title { font-family: var(--display); font-size: 18px; color: #f87171; margin-bottom: 8px; }
+  .err-msg { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 300px; }
+  .retry-btn {
+    margin-top: 24px; padding: 10px 24px; background: var(--accent);
+    border: none; border-radius: 10px; color: #fff; font-family: var(--mono);
+    font-size: 12px; cursor: pointer; transition: opacity .15s;
+  }
+  .retry-btn:hover { opacity: .85; }
 
-    /* ── Main App ── */
-    #vApp { display: none; padding-bottom: 32px; }
-    #vApp.show { display: block; }
+  /* ── App ── */
+  #app { display: none; padding: 0 0 32px; }
 
-    /* Header */
-    .header {
-      background: linear-gradient(180deg, #16162099 0%, transparent 100%);
-      padding: 20px 18px 16px;
-      position: sticky; top: 0;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: .5px solid var(--border);
-      z-index: 10;
-    }
-    .header-top {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 2px;
-    }
-    .header-brand {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .brand-icon {
-      width: 34px; height: 34px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-    }
-    .brand-name {
-      font-size: 16px; font-weight: 700;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .brand-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+  /* ── Header ── */
+  .header {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .header-title {
+    font-family: var(--display); font-size: 20px; font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #7c5cfc);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-badge {
+    font-size: 9px; background: var(--accent); color: #fff;
+    padding: 3px 8px; border-radius: 6px; letter-spacing: .5px;
+  }
+  .header-time { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-    .refresh-btn {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: var(--bg3); border: .5px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 15px; color: var(--text2);
-      transition: background .15s, transform .2s;
-    }
-    .refresh-btn:hover { background: var(--bg4); }
-    .refresh-btn.spinning { animation: spin .6s linear infinite; }
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; gap: 4px; padding: 12px 16px 0;
+    overflow-x: auto; scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex-shrink: 0; padding: 7px 14px; border-radius: 8px 8px 0 0;
+    font-size: 11px; font-family: var(--mono); cursor: pointer;
+    color: var(--muted); border: 1px solid transparent; border-bottom: none;
+    transition: all .2s; background: transparent;
+  }
+  .tab.active {
+    color: var(--text); background: var(--card);
+    border-color: var(--border);
+  }
 
-    /* Summary Cards */
-    .section { padding: 16px 14px 0; }
-    .section-label {
-      font-size: 10px; color: var(--text3); letter-spacing: .8px;
-      text-transform: uppercase; margin-bottom: 10px; padding: 0 2px;
-    }
+  /* ── Content ── */
+  .tab-content { display: none; padding: 16px; }
+  .tab-content.active { display: block; }
 
-    .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .card-wide { grid-column: 1 / -1; }
+  /* ── KPI Grid ── */
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .kpi-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 12px; position: relative; overflow: hidden;
+    animation: fadeUp .4s ease both;
+  }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--kpi-color, var(--accent));
+    opacity: .6;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .kpi:nth-child(1){animation-delay:.05s} .kpi:nth-child(2){animation-delay:.1s}
+  .kpi:nth-child(3){animation-delay:.15s} .kpi:nth-child(4){animation-delay:.2s}
+  .kpi:nth-child(5){animation-delay:.25s} .kpi:nth-child(6){animation-delay:.3s}
+  .kpi-label { font-size: 9px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-value { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+  .kpi-value.green { color: var(--accent2); }
+  .kpi-value.orange { color: var(--accent3); }
+  .kpi-value.purple { color: #c084fc; }
+  .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-    .stat-card {
-      background: var(--bg2);
-      border: .5px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      position: relative; overflow: hidden;
-      animation: fadeUp .4s both;
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .card-icon {
-      font-size: 22px; margin-bottom: 8px; display: block;
-    }
-    .card-value {
-      font-size: 28px; font-weight: 700; color: var(--text);
-      line-height: 1; letter-spacing: -1px;
-    }
-    .card-label {
-      font-size: 11px; color: var(--text3); margin-top: 5px;
-    }
-    .card-badge {
-      position: absolute; top: 12px; right: 12px;
-      font-size: 10px; font-weight: 600; padding: 3px 8px;
-      border-radius: 20px;
-    }
-    .badge-green { background: var(--green-dim); color: var(--green); }
-    .badge-amber { background: var(--amber-dim); color: var(--amber); }
-    .badge-purple { background: var(--accent-dim); color: var(--accent2); }
+  /* ── Section ── */
+  .section-title {
+    font-size: 10px; color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 8px; padding-left: 2px;
+  }
+  .section { margin-bottom: 20px; }
 
-    /* Tariff Bars */
-    .tariff-list { display: flex; flex-direction: column; gap: 8px; }
-    .tariff-row {
-      background: var(--bg2);
-      border: .5px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      animation: fadeUp .4s both;
-    }
-    .tariff-head {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .tariff-name { font-size: 13px; font-weight: 600; color: var(--text); }
-    .tariff-meta { font-size: 11px; color: var(--text3); }
-    .tariff-revenue { font-size: 13px; font-weight: 600; color: var(--green); }
+  /* ── Chart Bars ── */
+  .chart-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 12px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--accent) 0%, #4f3bc0 100%);
+    min-height: 2px; transition: height .6s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+  .bar.green { background: linear-gradient(180deg, var(--accent2) 0%, #16a34a 100%); }
+  .bar-label { font-size: 8px; color: var(--muted); text-align: center; white-space: nowrap; }
+  .bar-val { font-size: 9px; color: var(--muted); margin-bottom: 2px; }
 
-    .progress-track {
-      height: 5px; background: var(--bg3);
-      border-radius: 3px; overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%; border-radius: 3px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      transition: width .8s cubic-bezier(.4,0,.2,1);
-      width: 0;
-    }
+  /* ── List ── */
+  .list-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 6px;
+    animation: fadeUp .3s ease both;
+  }
+  .list-avatar {
+    width: 34px; height: 34px; border-radius: 10px; background: var(--muted2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+    font-family: var(--display); font-weight: 700; color: var(--muted);
+  }
+  .list-info { flex: 1; min-width: 0; }
+  .list-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .list-right { text-align: right; flex-shrink: 0; }
+  .list-price { font-size: 12px; font-weight: 700; color: var(--accent2); font-family: var(--display); }
+  .list-date { font-size: 9px; color: var(--muted); margin-top: 2px; }
 
-    /* Recent Purchases */
-    .purchase-list { display: flex; flex-direction: column; gap: 8px; }
-    .purchase-row {
-      background: var(--bg2);
-      border: .5px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
-      display: flex; align-items: center; gap: 12px;
-      animation: fadeUp .4s both;
-    }
-    .pu-avatar {
-      width: 38px; height: 38px; border-radius: 11px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff;
-      flex-shrink: 0;
-    }
-    .pu-info { flex: 1; min-width: 0; }
-    .pu-name {
-      font-size: 13px; font-weight: 600; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .pu-sub {
-      font-size: 11px; color: var(--text3); margin-top: 2px;
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    }
-    .pu-tariff {
-      background: var(--accent-dim); color: var(--accent2);
-      padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 600;
-    }
-    .pu-price {
-      font-size: 14px; font-weight: 700; color: var(--green);
-      flex-shrink: 0;
-    }
+  /* ── Tariff table ── */
+  .tariff-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 6px;
+  }
+  .tariff-rank { width: 18px; font-size: 10px; color: var(--muted); flex-shrink: 0; text-align: right; }
+  .tariff-name { flex: 1; font-size: 12px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tariff-cnt { font-size: 11px; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+  .tariff-rev { font-size: 11px; color: var(--accent2); font-weight: 700; width: 64px; text-align: right; flex-shrink: 0; }
+  .tariff-bar-wrap { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+  .tariff-bar-fill { height: 100%; background: var(--accent); border-radius: 1px; }
 
-    /* Daily mini-chart */
-    .mini-chart {
-      background: var(--bg2);
-      border: .5px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-    }
-    .chart-bars {
-      display: flex; align-items: flex-end; gap: 5px;
-      height: 60px; margin-top: 12px;
-    }
-    .bar-col {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .bar-fill {
-      width: 100%; border-radius: 4px 4px 0 0;
-      background: linear-gradient(180deg, var(--accent), var(--accent2));
-      min-height: 3px;
-      transition: height .6s cubic-bezier(.4,0,.2,1);
-      opacity: .85;
-    }
-    .bar-label { font-size: 9px; color: var(--text3); }
+  /* ── Ref table ── */
+  .ref-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px; font-size: 11px;
+  }
+  .ref-rank { width: 16px; color: var(--muted); flex-shrink: 0; text-align: right; }
+  .ref-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ref-cnt { color: #a78bfa; width: 40px; text-align: right; flex-shrink: 0; }
+  .ref-conv { color: var(--accent2); width: 40px; text-align: right; flex-shrink: 0; }
 
-    /* Empty state */
-    .empty-state {
-      text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px;
-    }
-    .empty-state span { display: block; font-size: 28px; margin-bottom: 8px; }
+  /* ── Empty ── */
+  .empty { padding: 32px; text-align: center; color: var(--muted); font-size: 12px; }
 
-    /* Animations */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(.3); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes shimmer {
-      0%   { background-position: -200% 0; }
-      100% { background-position:  200% 0; }
-    }
+  /* ── Refresh ── */
+  .refresh-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .refresh-btn {
+    padding: 6px 14px; background: var(--card); border: 1px solid var(--border2);
+    border-radius: 8px; color: var(--muted); font-family: var(--mono);
+    font-size: 10px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px;
+  }
+  .refresh-btn:hover { background: var(--border); color: var(--text); }
+  .refresh-btn.spinning .ri { animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    .stagger-1 { animation-delay: .05s; }
-    .stagger-2 { animation-delay: .10s; }
-    .stagger-3 { animation-delay: .15s; }
-    .stagger-4 { animation-delay: .20s; }
-
-    /* Pulse dot */
-    .live-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--green); display: inline-block;
-      box-shadow: 0 0 0 0 var(--green);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%  { box-shadow: 0 0 0 0 #34d39955; }
-      70% { box-shadow: 0 0 0 6px #34d39900; }
-      100%{ box-shadow: 0 0 0 0 #34d39900; }
-    }
-
-    .header-live {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 10px; color: var(--text3);
-    }
-  </style>
+  /* ── DB path notice ── */
+  .db-notice {
+    margin: 12px 0 0; padding: 10px 12px; background: #7c5cfc11;
+    border: 1px solid #7c5cfc33; border-radius: 10px;
+    font-size: 10px; color: var(--muted); word-break: break-all;
+  }
+  .db-notice strong { color: #a78bfa; }
+</style>
 </head>
 <body>
 
 <!-- Loading -->
-<div id="vLoading">
-  <div class="spin"></div>
-  <div class="load-label">Загрузка данных…</div>
+<div id="loading">
+  <div class="load-logo">📊</div>
+  <div class="load-bar-wrap"><div class="load-bar"></div></div>
+  <div class="load-text">Загрузка статистики…</div>
 </div>
 
-<!-- Access Denied -->
-<div id="vDenied">
-  <div class="denied-icon">🔒</div>
-  <div class="denied-title">Нет доступа</div>
-  <div class="denied-sub">
-    У вас нету доступа к статистике <b>Clearly</b>.<br>
-    Обратитесь к администратору.
-  </div>
+<!-- Error -->
+<div id="error-view">
+  <div class="err-icon">⚠️</div>
+  <div class="err-title">Не удалось загрузить данные</div>
+  <div class="err-msg" id="error-msg">Проверь что бот запущен и БД доступна.</div>
+  <button class="retry-btn" onclick="loadData()">Повторить</button>
 </div>
 
-<!-- Main App -->
-<div id="vApp">
-
-  <!-- Header -->
+<!-- App -->
+<div id="app">
   <div class="header">
-    <div class="header-top">
-      <div class="header-brand">
-        <div class="brand-icon">📊</div>
-        <div>
-          <div class="brand-name">Clearly Crypto</div>
-          <div class="brand-sub">Панель статистики</div>
+    <div class="header-row">
+      <div class="header-title">Clearly Stats</div>
+      <div class="header-badge">ADMIN</div>
+    </div>
+    <div class="header-time" id="updated-at">—</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview')">Обзор</div>
+    <div class="tab" onclick="switchTab('purchases')">Покупки</div>
+    <div class="tab" onclick="switchTab('tariffs')">Тарифы</div>
+    <div class="tab" onclick="switchTab('refs')">Рефералы</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="refresh-row">
+      <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+        <span class="ri">↻</span> Обновить
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Пользователи</div>
+      <div class="kpi-grid three">
+        <div class="kpi" style="--kpi-color:#7c5cfc">
+          <div class="kpi-label">Всего</div>
+          <div class="kpi-value purple" id="kpi-total-users">—</div>
+        </div>
+        <div class="kpi" style="--kpi-color:#4ade80">
+          <div class="kpi-label">За 7 дней</div>
+          <div class="kpi-value green" id="kpi-week-users">—</div>
+        </div>
+        <div class="kpi" style="--kpi-color:#fb923c">
+          <div class="kpi-label">Сегодня</div>
+          <div class="kpi-value orange" id="kpi-today-users">—</div>
         </div>
       </div>
-      <button class="refresh-btn" id="btnRefresh" onclick="loadStats()" title="Обновить">↻</button>
     </div>
-    <div class="header-live">
-      <span class="live-dot"></span>
-      Данные обновляются в реальном времени
-    </div>
-  </div>
 
-  <!-- Overview Cards -->
-  <div class="section">
-    <div class="section-label">Обзор</div>
-    <div class="cards-grid">
-      <div class="stat-card stagger-1">
-        <span class="card-icon">👥</span>
-        <div class="card-value" id="cTotalUsers">—</div>
-        <div class="card-label">Всего пользователей</div>
-        <div class="card-badge badge-purple" id="cNewWeek"></div>
-      </div>
-      <div class="stat-card stagger-2">
-        <span class="card-icon">💰</span>
-        <div class="card-value" id="cRevenue">—</div>
-        <div class="card-label">Общая выручка (USD)</div>
-      </div>
-      <div class="stat-card stagger-3">
-        <span class="card-icon">🛒</span>
-        <div class="card-value" id="cPurchases">—</div>
-        <div class="card-label">Всего покупок</div>
-      </div>
-      <div class="stat-card stagger-4">
-        <span class="card-icon">📅</span>
-        <div class="card-value" id="cToday">—</div>
-        <div class="card-label">Новых сегодня</div>
-        <div class="card-badge badge-green" id="cWeekUsers"></div>
+    <div class="section">
+      <div class="section-title">Доходы</div>
+      <div class="kpi-grid">
+        <div class="kpi" style="--kpi-color:#4ade80">
+          <div class="kpi-label">Выручка USD</div>
+          <div class="kpi-value green" id="kpi-revenue">—</div>
+          <div class="kpi-sub">подтверждённые</div>
+        </div>
+        <div class="kpi" style="--kpi-color:#7c5cfc">
+          <div class="kpi-label">Покупок</div>
+          <div class="kpi-value" id="kpi-purchases">—</div>
+          <div class="kpi-sub">всего</div>
+        </div>
+        <div class="kpi" style="--kpi-color:#c084fc">
+          <div class="kpi-label">Подписки</div>
+          <div class="kpi-value purple" id="kpi-subs">—</div>
+          <div class="kpi-sub">активные</div>
+        </div>
+        <div class="kpi" style="--kpi-color:#fb923c">
+          <div class="kpi-label">Рефералы</div>
+          <div class="kpi-value orange" id="kpi-refs">—</div>
+          <div class="kpi-sub">всего</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Weekly Chart -->
-  <div class="section" style="margin-top:4px">
-    <div class="section-label">Покупки за 7 дней</div>
-    <div class="mini-chart">
-      <div class="chart-bars" id="chartBars">
-        <div class="empty-state"><span>📭</span>Нет данных за неделю</div>
+    <div class="section">
+      <div class="section-title">Продажи — 7 дней (кол-во)</div>
+      <div class="chart-wrap">
+        <div class="chart-bars" id="chart-count"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Выручка — 7 дней (USD)</div>
+      <div class="chart-wrap">
+        <div class="chart-bars" id="chart-revenue"></div>
       </div>
     </div>
   </div>
 
-  <!-- Tariffs -->
-  <div class="section" style="margin-top:4px">
-    <div class="section-label">По тарифам</div>
-    <div class="tariff-list" id="tariffList">
-      <div class="empty-state"><span>📭</span>Покупок пока нет</div>
-    </div>
+  <!-- PURCHASES -->
+  <div class="tab-content" id="tab-purchases">
+    <div class="section-title" style="padding:16px 0 8px">Последние 20 покупок</div>
+    <div id="purchases-list"></div>
   </div>
 
-  <!-- Recent Purchases -->
-  <div class="section" style="margin-top:4px">
-    <div class="section-label">Последние покупки</div>
-    <div class="purchase-list" id="purchaseList">
-      <div class="empty-state"><span>📭</span>Покупок пока нет</div>
+  <!-- TARIFFS -->
+  <div class="tab-content" id="tab-tariffs">
+    <div class="section-title" style="padding:16px 0 8px">По тарифам</div>
+    <div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:8px;font-size:9px;color:var(--muted);padding-right:4px">
+      <span style="width:36px;text-align:right">кол-во</span>
+      <span style="width:64px;text-align:right">выручка</span>
     </div>
+    <div id="tariffs-list"></div>
   </div>
 
-</div><!-- /vApp -->
+  <!-- REFS -->
+  <div class="tab-content" id="tab-refs">
+    <div class="kpi-grid" style="padding:16px 0 12px">
+      <div class="kpi" style="--kpi-color:#fb923c">
+        <div class="kpi-label">Всего рефералов</div>
+        <div class="kpi-value orange" id="kpi-refs2">—</div>
+      </div>
+      <div class="kpi" style="--kpi-color:#4ade80">
+        <div class="kpi-label">Оплатили</div>
+        <div class="kpi-value green" id="kpi-paid-refs">—</div>
+      </div>
+    </div>
+    <div class="section-title">Топ рефереров</div>
+    <div style="display:flex;justify-content:flex-end;gap:0;margin-bottom:6px;font-size:9px;color:var(--muted);padding-right:4px">
+      <span style="width:40px;text-align:right">приглаш.</span>
+      <span style="width:40px;text-align:right">оплатили</span>
+    </div>
+    <div id="refs-list"></div>
+  </div>
+
+</div>
 
 <script>
+  // Telegram WebApp init
   const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-  }
+  if (tg) { tg.ready(); tg.expand(); }
 
-  // ── Access check ──────────────────────────────────────────────
-  const ALLOWED = new Set(["slavik222567", "rvelikiy"]);
-
-  function getUsernameFromTg() {
-    try {
-      const user = tg?.initDataUnsafe?.user;
-      return (user?.username || "").toLowerCase();
-    } catch { return ""; }
-  }
-
-  function checkAccess() {
-    const username = getUsernameFromTg();
-    if (!username || !ALLOWED.has(username)) {
-      document.getElementById("vLoading").classList.add("out");
-      setTimeout(() => document.getElementById("vDenied").classList.add("show"), 420);
-      return false;
+  // ── API URL: detect automatically ───────────────────────────────
+  // If page served from the bot's web server, use same origin
+  // If page is on GitHub Pages, use the configured server URL
+  const STATS_API = (() => {
+    const host = window.location.hostname;
+    // GitHub Pages or other static host → point to your server
+    if (host.includes('github.io') || host.includes('github.com')) {
+      // CHANGE THIS to your server's public address:
+      return 'http://YOUR_SERVER_IP:8081';
     }
-    return true;
+    // Same origin (served directly from the bot)
+    return '';
+  })();
+
+  let statsData = null;
+
+  async function loadData() {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) { btn.classList.add('spinning'); }
+
+    try {
+      const res = await fetch(`${STATS_API}/api/stats`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Server error');
+      statsData = json.data;
+      render(statsData);
+      document.getElementById('loading').classList.add('out');
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('error-view').style.display = 'none';
+    } catch (e) {
+      document.getElementById('loading').classList.add('out');
+      document.getElementById('error-view').style.display = 'flex';
+      document.getElementById('error-msg').textContent = e.message;
+    } finally {
+      if (btn) btn.classList.remove('spinning');
+    }
   }
 
-  // ── API URL ───────────────────────────────────────────────────
-  // Замени на реальный URL твоего сервера (тот же хост, что WEBAPP_URL)
-  const API_BASE = window.location.origin;
-
-  // ── Helpers ───────────────────────────────────────────────────
   function fmt(n) {
-    if (n === null || n === undefined || n === "—") return "—";
-    return Number(n).toLocaleString("ru-RU");
+    if (n == null) return '—';
+    return Number(n).toLocaleString('ru-RU');
   }
-  function fmtMoney(n) {
-    if (!n && n !== 0) return "—";
-    return "$" + Number(n).toFixed(2);
+  function fmtUsd(n) {
+    if (n == null) return '—';
+    return '$' + Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-  function timeAgo(isoStr) {
-    if (!isoStr) return "";
-    const d = new Date(isoStr);
-    const diff = Math.floor((Date.now() - d) / 1000);
-    if (diff < 60)  return "только что";
-    if (diff < 3600) return Math.floor(diff/60) + " мин. назад";
-    if (diff < 86400) return Math.floor(diff/3600) + " ч. назад";
-    return Math.floor(diff/86400) + " д. назад";
+  function fmtDate(s) {
+    if (!s) return '—';
+    try {
+      const d = new Date(s);
+      return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' }) + ' ' +
+             d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+    } catch { return s; }
   }
-  function initials(name) {
-    if (!name) return "?";
-    return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  }
-  function shortDay(iso) {
-    if (!iso) return "";
-    const d = new Date(iso + "T00:00:00");
-    return d.toLocaleDateString("ru-RU", { month: "short", day: "numeric" });
+  function initials(first, user) {
+    const name = user ? '@' + user : first;
+    return (name || '?').charAt(0).toUpperCase();
   }
 
-  // ── Render ────────────────────────────────────────────────────
-  function renderStats(data) {
-    // Overview
-    animCount("cTotalUsers", data.total_users ?? 0);
-    animCount("cPurchases",  data.total_purchases ?? 0);
-    document.getElementById("cRevenue").textContent = fmtMoney(data.total_revenue);
-    animCount("cToday", data.new_users_today ?? 0);
+  function render(d) {
+    // Updated at
+    const el = document.getElementById('updated-at');
+    if (el) el.textContent = 'Обновлено: ' + fmtDate(d.generated_at);
 
-    const nw = data.new_users_week ?? 0;
-    document.getElementById("cNewWeek").textContent = nw > 0 ? `+${nw} за неделю` : "";
-    document.getElementById("cWeekUsers").textContent = nw > 0 ? `+${nw} за 7 дней` : "";
+    // KPIs
+    set('kpi-total-users', fmt(d.total_users));
+    set('kpi-week-users',  fmt(d.new_users_week));
+    set('kpi-today-users', fmt(d.new_users_today));
+    set('kpi-revenue',     fmtUsd(d.total_revenue));
+    set('kpi-purchases',   fmt(d.total_purchases));
+    set('kpi-subs',        fmt(d.active_subs));
+    set('kpi-refs',        fmt(d.total_refs));
+    set('kpi-refs2',       fmt(d.total_refs));
+    set('kpi-paid-refs',   fmt(d.paid_refs));
 
-    // Chart
-    renderChart(data.daily_stats || []);
+    // Charts
+    renderChart('chart-count',   d.daily_stats, 'count',   false);
+    renderChart('chart-revenue', d.daily_stats, 'revenue', true);
+
+    // Purchases list
+    renderPurchases(d.recent_purchases || []);
 
     // Tariffs
-    renderTariffs(data.tariffs || []);
+    renderTariffs(d.tariffs || []);
 
-    // Recent purchases
-    renderPurchases(data.recent_purchases || []);
+    // Refs
+    renderRefs(d.top_referrers || []);
   }
 
-  function animCount(id, target) {
+  function set(id, val) {
     const el = document.getElementById(id);
-    const start = 0;
-    const dur = 600;
-    const startTime = performance.now();
-    function step(now) {
-      const p = Math.min((now - startTime) / dur, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      el.textContent = fmt(Math.round(ease * target));
-      if (p < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
+    if (el) el.textContent = val;
   }
 
-  function renderChart(daily) {
-    const el = document.getElementById("chartBars");
-    if (!daily.length) {
-      el.innerHTML = '<div class="empty-state"><span>📭</span>Нет данных за неделю</div>';
+  function renderChart(containerId, days, field, isMoney) {
+    const wrap = document.getElementById(containerId);
+    if (!wrap) return;
+    if (!days || !days.length) {
+      wrap.innerHTML = '<div class="empty">Нет данных</div>';
       return;
     }
-    const max = Math.max(...daily.map(d => d.count), 1);
-    el.innerHTML = daily.map(d => {
-      const pct = Math.round((d.count / max) * 100);
-      return `
-        <div class="bar-col">
-          <div class="bar-fill" style="height:${pct}%"></div>
-          <div class="bar-label">${shortDay(d.day)}</div>
-        </div>`;
-    }).join("");
-    // animate heights in
-    requestAnimationFrame(() => {
-      el.querySelectorAll(".bar-fill").forEach((b, i) => {
-        b.style.transition = `height .6s ${i*0.07}s cubic-bezier(.4,0,.2,1)`;
-      });
+    const vals = days.map(d => d[field] || 0);
+    const maxVal = Math.max(...vals, 1);
+    wrap.innerHTML = '';
+    days.forEach((d, i) => {
+      const v = d[field] || 0;
+      const pct = Math.max((v / maxVal) * 100, 2);
+      const label = d.day ? d.day.slice(5) : '';
+      const valStr = isMoney ? '$' + Number(v).toFixed(0) : String(v);
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      col.innerHTML = `
+        <div class="bar-val">${valStr}</div>
+        <div class="bar${isMoney ? ' green' : ''}" style="height:${pct}%"></div>
+        <div class="bar-label">${label}</div>
+      `;
+      wrap.appendChild(col);
     });
   }
 
-  function renderTariffs(tariffs) {
-    const el = document.getElementById("tariffList");
-    if (!tariffs.length) {
-      el.innerHTML = '<div class="empty-state"><span>📭</span>Покупок пока нет</div>';
-      return;
-    }
-    const maxCount = Math.max(...tariffs.map(t => t.count), 1);
-    el.innerHTML = tariffs.map((t, i) => {
-      const pct = Math.round((t.count / maxCount) * 100);
-      return `
-        <div class="tariff-row stagger-${Math.min(i+1,4)}">
-          <div class="tariff-head">
-            <div>
-              <div class="tariff-name">${escHtml(t.name)}</div>
-              <div class="tariff-meta">${fmt(t.count)} покупок</div>
-            </div>
-            <div class="tariff-revenue">${fmtMoney(t.revenue)}</div>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" data-pct="${pct}"></div>
-          </div>
-        </div>`;
-    }).join("");
-    // animate progress bars
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.querySelectorAll(".progress-fill").forEach(b => {
-        b.style.width = b.dataset.pct + "%";
-      });
-    }));
+  function renderPurchases(list) {
+    const wrap = document.getElementById('purchases-list');
+    if (!wrap) return;
+    if (!list.length) { wrap.innerHTML = '<div class="empty">Покупок пока нет</div>'; return; }
+    wrap.innerHTML = list.map((p, i) => {
+      const name = p.username ? '@' + p.username : (p.first_name || 'Аноним');
+      const init = initials(p.first_name, p.username);
+      const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : '—';
+      return `<div class="list-item" style="animation-delay:${i*0.03}s">
+        <div class="list-avatar">${init}</div>
+        <div class="list-info">
+          <div class="list-name">${esc(name)}</div>
+          <div class="list-sub">${esc(p.tariff || '—')} · ${esc(p.currency || '')}</div>
+        </div>
+        <div class="list-right">
+          <div class="list-price">${price}</div>
+          <div class="list-date">${fmtDate(p.date)}</div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  function renderPurchases(purchases) {
-    const el = document.getElementById("purchaseList");
-    if (!purchases.length) {
-      el.innerHTML = '<div class="empty-state"><span>📭</span>Покупок пока нет</div>';
-      return;
-    }
-    el.innerHTML = purchases.map((p, i) => {
-      const name   = p.username ? "@" + p.username : (p.first_name || "Пользователь");
-      const letter = initials(p.first_name || p.username || "?");
-      const ago    = timeAgo(p.date);
-      return `
-        <div class="purchase-row stagger-${Math.min(i+1,4)}">
-          <div class="pu-avatar">${letter}</div>
-          <div class="pu-info">
-            <div class="pu-name">${escHtml(name)}</div>
-            <div class="pu-sub">
-              <span class="pu-tariff">${escHtml(p.tariff)}</span>
-              <span>${ago}</span>
-            </div>
-          </div>
-          <div class="pu-price">${fmtMoney(p.price)}</div>
-        </div>`;
-    }).join("");
+  function renderTariffs(list) {
+    const wrap = document.getElementById('tariffs-list');
+    if (!wrap) return;
+    if (!list.length) { wrap.innerHTML = '<div class="empty">Нет данных</div>'; return; }
+    const maxRev = Math.max(...list.map(t => t.revenue || 0), 1);
+    wrap.innerHTML = list.map((t, i) => `
+      <div class="tariff-row" style="animation:fadeUp .3s ${i*0.04}s ease both;position:relative">
+        <div class="tariff-rank">${i+1}</div>
+        <div class="tariff-name">${esc(t.name || '—')}</div>
+        <div class="tariff-cnt">${fmt(t.count)}</div>
+        <div class="tariff-rev">${fmtUsd(t.revenue)}</div>
+      </div>
+    `).join('');
   }
 
-  function escHtml(s) {
-    if (!s) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+  function renderRefs(list) {
+    const wrap = document.getElementById('refs-list');
+    if (!wrap) return;
+    if (!list.length) { wrap.innerHTML = '<div class="empty">Нет рефералов</div>'; return; }
+    wrap.innerHTML = list.map((r, i) => {
+      const name = r.username ? '@' + r.username : (r.name || 'id?');
+      return `<div class="ref-row" style="animation:fadeUp .3s ${i*0.04}s ease both">
+        <div class="ref-rank">${i+1}</div>
+        <div class="ref-name">${esc(name)}</div>
+        <div class="ref-cnt">${r.invited}</div>
+        <div class="ref-conv">${r.converted}</div>
+      </div>`;
+    }).join('');
   }
 
-  // ── Load ──────────────────────────────────────────────────────
-  async function loadStats() {
-    const btn = document.getElementById("btnRefresh");
-    btn.classList.add("spinning");
-    try {
-      const res  = await fetch(`${API_BASE}/api/stats`);
-      const json = await res.json();
-      if (json.ok) {
-        renderStats(json.data);
-      } else {
-        console.error("Stats error:", json.error);
-      }
-    } catch (e) {
-      console.error("Fetch error:", e);
-    } finally {
-      btn.classList.remove("spinning");
-    }
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // ── Init ──────────────────────────────────────────────────────
-  async function init() {
-    // Small delay for Telegram WebApp to initialize
-    await new Promise(r => setTimeout(r, 300));
-
-    if (!checkAccess()) return;
-
-    // Show app, hide loader
-    document.getElementById("vApp").classList.add("show");
-    document.getElementById("vLoading").classList.add("out");
-
-    await loadStats();
-
-    // Auto-refresh every 30 seconds
-    setInterval(loadStats, 30_000);
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const names = ['overview','purchases','tariffs','refs'];
+      t.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const el = document.getElementById('tab-' + name);
+    if (el) el.classList.add('active');
   }
 
-  init();
+  // Auto-refresh every 30s
+  loadData();
+  setInterval(loadData, 30000);
 </script>
 </body>
 </html>
